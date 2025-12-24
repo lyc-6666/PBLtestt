@@ -1005,6 +1005,105 @@ def admin_delete_movie(movie_id):
         print(f"删除电影错误: {e}")
         return redirect(url_for('admin_panel'))
 
+# ==============================
+# 管理员用户管理路由
+# ==============================
+
+# 用户管理页面路由
+@app.route('/admin/manage_users')
+def admin_manage_users():
+    """管理员用户管理页面"""
+    # 检查是否登录且是管理员
+    if not check_login() or not check_admin():
+        return redirect(url_for('login'))
+    
+    # 获取所有用户
+    users = execute_db_query("SELECT * FROM users ORDER BY created_at DESC", fetch_all=True)
+    
+    return render_template('admin_manage_users.html', users=users, user=session)
+
+# 更新用户角色路由
+@app.route('/admin/update_user_role/<int:user_id>', methods=['POST'])
+def admin_update_user_role(user_id):
+    """管理员更新用户角色"""
+    # 检查是否登录且是管理员
+    if not check_login() or not check_admin():
+        return jsonify({'success': False, 'message': '权限不足'})
+    
+    try:
+        # 不能修改自己的角色
+        if user_id == session.get('user_id'):
+            return jsonify({'success': False, 'message': '不能修改自己的角色'})
+        
+        # 获取请求的新角色
+        data = request.get_json()
+        new_role = data.get('role', 'user')
+        
+        if new_role not in ['user', 'admin']:
+            return jsonify({'success': False, 'message': '无效的角色'})
+        
+        # 检查用户是否存在
+        user = execute_db_query("SELECT * FROM users WHERE id = ?", (user_id,), fetch_one=True)
+        if not user:
+            return jsonify({'success': False, 'message': '用户不存在'})
+        
+        # 更新用户角色
+        result = execute_db_query(
+            "UPDATE users SET role = ? WHERE id = ?",
+            (new_role, user_id),
+            commit=True
+        )
+        
+        if result:
+            print(f"用户 {user_id} 角色已更新为: {new_role}")
+            return jsonify({'success': True, 'message': '角色更新成功'})
+        else:
+            return jsonify({'success': False, 'message': '更新失败'})
+            
+    except Exception as e:
+        print(f"更新用户角色错误: {e}")
+        return jsonify({'success': False, 'message': '服务器错误'})
+
+# 删除用户路由
+@app.route('/admin/delete_user/<int:user_id>', methods=['POST'])
+def admin_delete_user(user_id):
+    """管理员删除用户"""
+    # 检查是否登录且是管理员
+    if not check_login() or not check_admin():
+        return jsonify({'success': False, 'message': '权限不足'})
+    
+    try:
+        # 不能删除自己
+        if user_id == session.get('user_id'):
+            return jsonify({'success': False, 'message': '不能删除自己'})
+        
+        # 检查用户是否存在
+        user = execute_db_query("SELECT * FROM users WHERE id = ?", (user_id,), fetch_one=True)
+        if not user:
+            return jsonify({'success': False, 'message': '用户不存在'})
+        
+        # 检查是否是最后一个管理员
+        if user['role'] == 'admin':
+            admin_count = execute_db_query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'", fetch_one=True)
+            if admin_count and admin_count['count'] <= 1:
+                return jsonify({'success': False, 'message': '不能删除最后一个管理员'})
+        
+        # 删除用户相关的数据（评分）
+        execute_db_query("DELETE FROM ratings WHERE user_id = ?", (user_id,), commit=True)
+        
+        # 删除用户
+        result = execute_db_query("DELETE FROM users WHERE id = ?", (user_id,), commit=True)
+        
+        if result:
+            print(f"用户 {user_id} 删除成功")
+            return jsonify({'success': True, 'message': '用户删除成功'})
+        else:
+            return jsonify({'success': False, 'message': '删除失败'})
+            
+    except Exception as e:
+        print(f"删除用户错误: {e}")
+        return jsonify({'success': False, 'message': '服务器错误'})
+
 # 添加访问上传文件的静态路由
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):

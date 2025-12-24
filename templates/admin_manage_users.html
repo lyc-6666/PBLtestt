@@ -1,0 +1,427 @@
+<!-- 管理员用户管理页面模板 -->
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 电影推荐系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .user-table th {
+        border-top: none;
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(45deg, #dc3545, #fd7e14);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+    }
+    .role-badge-admin {
+        background: linear-gradient(45deg, #dc3545, #c82333);
+    }
+    .role-badge-user {
+        background: linear-gradient(45deg, #6c757d, #5a6268);
+    }
+    .btn-group-sm .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-users me-2"></i>用户管理</h2>
+        <p class="text-muted mb-0">管理系统所有用户的账号和权限</p>
+    </div>
+    <div>
+        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>返回管理面板
+        </a>
+    </div>
+</div>
+
+<!-- 用户统计信息 -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ users|length }}</h3>
+                <p class="card-text">用户总数</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ (users|selectattr('role', 'equalto', 'admin')|list)|length }}</h3>
+                <p class="card-text">管理员</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ (users|selectattr('role', 'equalto', 'user')|list)|length }}</h3>
+                <p class="card-text">普通用户</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body text-center">
+                <h3 class="card-title">{{ (users|selectattr('email')|selectattr('email', 'ne', '')|list)|length }}</h3>
+                <p class="card-text">已绑定邮箱</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户列表 -->
+<div class="card">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>用户列表
+            <span class="badge bg-light text-dark ms-2">{{ users|length }} 个用户</span>
+        </h5>
+        <div class="d-flex gap-2">
+            <!-- 搜索框 -->
+            <div class="input-group" style="width: 200px;">
+                <input type="text" class="form-control" id="userSearch" placeholder="搜索用户...">
+                <button class="btn btn-outline-light" type="button" onclick="searchUsers()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if users %}
+        <div class="table-responsive">
+            <table class="table user-table" id="userTable">
+                <thead>
+                    <tr>
+                        <th>用户</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>注册时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="user-row" data-username="{{ user.username|lower }}">
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="user-avatar me-3">
+                                    {{ user.username[0]|upper }}
+                                </div>
+                                <div>
+                                    <strong>{{ user.username }}</strong>
+                                    {% if user.id == session.user_id %}
+                                    <span class="badge bg-info ms-2">当前用户</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if user.email %}
+                            <a href="mailto:{{ user.email }}" class="text-decoration-none">
+                                {{ user.email }}
+                            </a>
+                            {% else %}
+                            <span class="text-muted">未设置</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge {% if user.role == 'admin' %}role-badge-admin{% else %}role-badge-user{% endif %}">
+                                {% if user.role == 'admin' %}
+                                    <i class="fas fa-crown me-1"></i>管理员
+                                {% else %}
+                                    <i class="fas fa-user me-1"></i>普通用户
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if user.created_at %}
+                                    {{ user.created_at[:10] }}<br>
+                                    {{ user.created_at[11:16] if user.created_at|length > 16 }}
+                                {% else %}
+                                    未知
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary" 
+                                        onclick="viewUserDetails({{ user.id }})" 
+                                        title="查看详情">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if user.id != session.user_id %}
+                                <button class="btn btn-outline-warning" 
+                                        onclick="editUserRole({{ user.id }}, '{{ user.username }}', '{{ user.role }}')" 
+                                        title="修改角色">
+                                    <i class="fas fa-user-edit"></i>
+                                </button>
+                                {% if user.role == 'admin' and (users|selectattr('role', 'equalto', 'admin')|list)|length > 1 %}
+                                <button class="btn btn-outline-danger" 
+                                        onclick="confirmRevokeAdmin({{ user.id }}, '{{ user.username }}')" 
+                                        title="撤销管理员权限">
+                                    <i class="fas fa-user-minus"></i>
+                                </button>
+                                {% endif %}
+                                {% if user.role != 'admin' %}
+                                <button class="btn btn-outline-success" 
+                                        onclick="confirmGrantAdmin({{ user.id }}, '{{ user.username }}')" 
+                                        title="设为管理员">
+                                    <i class="fas fa-user-plus"></i>
+                                </button>
+                                {% endif %}
+                                <button class="btn btn-outline-danger" 
+                                        onclick="confirmDeleteUser({{ user.id }}, '{{ user.username }}')" 
+                                        title="删除用户">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">暂无用户</h4>
+            <p class="text-muted">系统中还没有任何用户注册</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 用户详情模态框 -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user me-2"></i>用户详情
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="userDetailsContent">
+                <!-- 用户详情内容将通过JavaScript动态加载 -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑用户角色模态框 -->
+<div class="modal fade" id="editUserRoleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-edit me-2"></i>修改用户角色
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserRoleForm">
+                    <input type="hidden" id="editUserId" name="user_id">
+                    <div class="mb-3">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="editUsername" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">当前角色</label>
+                        <input type="text" class="form-control" id="editCurrentRole" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">新角色</label>
+                        <select class="form-select" id="editNewRole" name="new_role">
+                            <option value="user">普通用户</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                        <div class="form-text text-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            请谨慎修改用户角色，管理员权限将允许用户访问系统管理功能。
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveUserRole()">保存更改</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 搜索用户
+function searchUsers() {
+    const searchTerm = document.getElementById('userSearch').value.toLowerCase();
+    const rows = document.querySelectorAll('#userTable tbody .user-row');
+    
+    rows.forEach(row => {
+        const username = row.dataset.username;
+        const shouldShow = username.includes(searchTerm);
+        row.style.display = shouldShow ? '' : 'none';
+    });
+}
+
+// 实时搜索
+document.getElementById('userSearch').addEventListener('input', searchUsers);
+
+// 查看用户详情
+function viewUserDetails(userId) {
+    // 这里可以通过AJAX获取用户详细信息，为简化直接显示基本信息
+    const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+    document.getElementById('userDetailsContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+        </div>
+    `;
+    
+    // 模拟加载用户详情
+    setTimeout(() => {
+        document.getElementById('userDetailsContent').innerHTML = `
+            <div class="text-center mb-3">
+                <div class="user-avatar mx-auto" style="width: 80px; height: 80px; font-size: 2rem;">
+                    用户
+                </div>
+            </div>
+            <p><strong>用户ID:</strong> ${userId}</p>
+            <p><strong>功能开发中...</strong></p>
+            <p class="text-muted">这里将显示用户的详细统计信息，包括：</p>
+            <ul class="text-muted">
+                <li>评分次数</li>
+                <li>评论数量</li>
+                <li>最后登录时间</li>
+                <li>活动记录</li>
+            </ul>
+        `;
+        modal.show();
+    }, 500);
+}
+
+// 编辑用户角色
+function editUserRole(userId, username, currentRole) {
+    document.getElementById('editUserId').value = userId;
+    document.getElementById('editUsername').value = username;
+    document.getElementById('editCurrentRole').value = currentRole === 'admin' ? '管理员' : '普通用户';
+    document.getElementById('editNewRole').value = currentRole;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editUserRoleModal'));
+    modal.show();
+}
+
+// 保存用户角色
+function saveUserRole() {
+    const userId = document.getElementById('editUserId').value;
+    const newRole = document.getElementById('editNewRole').value;
+    
+    // 发送AJAX请求更新用户角色
+    fetch(`/admin/update_user_role/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('更新失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请重试');
+    });
+}
+
+// 确认设为管理员
+function confirmGrantAdmin(userId, username) {
+    if (confirm(`确定要将用户 "${username}" 设为管理员吗？\n\n警告：管理员拥有系统完全访问权限！`)) {
+        updateUserRole(userId, 'admin');
+    }
+}
+
+// 确认撤销管理员
+function confirmRevokeAdmin(userId, username) {
+    if (confirm(`确定要撤销用户 "${username}" 的管理员权限吗？\n\n警告：撤销后该用户将无法访问管理功能！`)) {
+        updateUserRole(userId, 'user');
+    }
+}
+
+// 确认删除用户
+function confirmDeleteUser(userId, username) {
+    if (confirm(`确定要删除用户 "${username}" 吗？\n\n警告：此操作不可恢复，该用户的所有数据将被删除！`)) {
+        if (confirm('再次确认：真的要删除这个用户吗？')) {
+            deleteUser(userId);
+        }
+    }
+}
+
+// 更新用户角色
+function updateUserRole(userId, role) {
+    fetch(`/admin/update_user_role/${userId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: role })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('操作失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请重试');
+    });
+}
+
+// 删除用户
+function deleteUser(userId) {
+    fetch(`/admin/delete_user/${userId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('网络错误，请重试');
+    });
+}
+</script>
+{% endblock %}
