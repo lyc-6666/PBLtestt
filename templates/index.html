@@ -1,0 +1,105 @@
+<!-- 首页模板：显示所有电影 -->
+{% extends "base.html" %}
+
+{% block title %}首页 - 电影推荐系统{% endblock %}
+
+{% block content %}
+<!-- 主内容区：电影列表 -->
+<div class="col-12">
+        <!-- 页面标题和统计 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>最新电影</h2>
+            <span class="text-muted">共 {{ movies|length }} 部电影</span>
+        </div>
+        
+        <!-- 电影网格 -->
+        {% if movies %}
+        <div class="row">
+            {% for movie in movies %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card movie-card h-100">
+                    <!-- 电影海报 -->
+                    <img src="{{ movie.image_url }}" 
+                         class="movie-poster" 
+                         alt="{{ movie.title }}"
+                         onerror="this.src='https://picsum.photos/300/450?random={{ movie.id }}'">
+                    
+                    <div class="card-body">
+                        <!-- 电影标题 -->
+                        <h6 class="card-title">{{ movie.title }}</h6>
+                        
+                        <!-- 电影信息 -->
+                        <div class="small text-muted mb-2">
+                            <div><i class="fas fa-user me-1"></i>{{ movie.director or '未知' }}</div>
+                            <div><i class="fas fa-calendar me-1"></i>{{ movie.year or '未知' }}</div>
+                            <div><i class="fas fa-tag me-1"></i>{{ movie.genre or '未知' }}</div>
+                        </div>
+                        
+                        <!-- 评分 -->
+                        {% if movie.rating %}
+                        <div class="rating-stars mb-2">
+                            {% for i in range(5) %}
+                                {% if i < movie.rating|int %}
+                                    <i class="fas fa-star"></i>
+                                {% else %}
+                                    <i class="far fa-star"></i>
+                                {% endif %}
+                            {% endfor %}
+                            <small class="text-muted">({{ "%.1f"|format(movie.rating) }})</small>
+                        </div>
+                        {% else %}
+                        <div class="text-muted small mb-2">暂无评分</div>
+                        {% endif %}
+                        
+                        <!-- 电影描述（截断） -->
+                        <p class="card-text small text-muted">
+                            {{ movie.description[:50] }}{% if movie.description|length > 50 %}...{% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="card-footer bg-transparent">
+                        <a href="{{ url_for('movie_detail', movie_id=movie.id) }}" 
+                           class="btn btn-primary btn-sm w-100">
+                            <i class="fas fa-info-circle me-1"></i>查看详情
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- 没有电影的提示 -->
+        <div class="text-center py-5">
+            <i class="fas fa-film fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">暂无电影</h4>
+            <p class="text-muted">系统管理员正在添加电影内容</p>
+            {% if user and user.role == 'admin' %}
+            <a href="{{ url_for('admin_add_movie') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>添加第一部电影
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 页面底部统计信息 -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="text-primary">{{ movies|length }}</h4>
+                        <p class="text-muted">电影总数</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="text-warning">{{ (movies|selectattr('rating')|list)|length }}</h4>
+                        <p class="text-muted">已评分电影</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

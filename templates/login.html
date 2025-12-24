@@ -1,0 +1,74 @@
+<!-- 用户登录页面模板 -->
+{% extends "base.html" %}
+
+{% block title %}登录 - 电影推荐系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>用户登录</h4>
+            </div>
+            <div class="card-body">
+                <!-- 登录表单 -->
+                <form action="{{ url_for('login') }}" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">
+                            <i class="fas fa-user me-1"></i>用户名
+                        </label>
+                        <input type="text" class="form-control" id="username" name="username" 
+                               placeholder="请输入用户名" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock me-1"></i>密码
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="请输入密码" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>登录
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- 注册链接 -->
+                <div class="text-center mt-3">
+                    <p class="mb-0">还没有账号？ 
+                        <a href="{{ url_for('register') }}" class="text-decoration-none">立即注册</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 页面底部说明 -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5>登录后您可以：</h5>
+                <div class="row mt-3">
+                    <div class="col-md-4">
+                        <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                        <p>为电影评分</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-comment fa-2x text-info mb-2"></i>
+                        <p>发表评论</p>
+                    </div>
+                    <div class="col-md-4">
+                        <i class="fas fa-heart fa-2x text-danger mb-2"></i>
+                        <p>收藏电影</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

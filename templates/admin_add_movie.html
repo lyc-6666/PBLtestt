@@ -1,0 +1,311 @@
+<!-- 管理员添加电影页面模板 -->
+{% extends "base.html" %}
+
+{% block title %}添加电影 - 电影推荐系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h3 class="mb-0"><i class="fas fa-plus-circle me-2"></i>添加新电影</h3>
+            </div>
+            <div class="card-body">
+                <!-- 添加电影表单 -->
+                <form action="{{ url_for('admin_add_movie') }}" method="post" enctype="multipart/form-data">
+                    <div class="row">
+                        <!-- 基本信息列 -->
+                        <div class="col-md-6">
+                            <h5 class="mb-3 text-primary"><i class="fas fa-info-circle me-2"></i>基本信息</h5>
+                            
+                            <!-- 电影标题 -->
+                            <div class="mb-3">
+                                <label for="title" class="form-label">
+                                    <i class="fas fa-film me-1"></i>电影标题
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       placeholder="请输入电影标题" required maxlength="200">
+                                <div class="form-text">请输入完整的电影标题，最多200个字符</div>
+                            </div>
+                            
+                            <!-- 导演 -->
+                            <div class="mb-3">
+                                <label for="director" class="form-label">
+                                    <i class="fas fa-user me-1"></i>导演
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="director" name="director" 
+                                       placeholder="请输入导演姓名" required maxlength="100">
+                                <div class="form-text">请输入导演的完整姓名</div>
+                            </div>
+                            
+                            <!-- 上映年份 -->
+                            <div class="mb-3">
+                                <label for="year" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>上映年份
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="year" name="year" 
+                                       min="1900" max="2030" required>
+                                <div class="form-text">请输入电影的上映年份（1900-2030）</div>
+                            </div>
+                            
+                            <!-- 电影类型 -->
+                            <div class="mb-3">
+                                <label for="genre" class="form-label">
+                                    <i class="fas fa-tag me-1"></i>类型
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="genre" name="genre" 
+                                       placeholder="例如: 动作, 剧情, 喜剧" required maxlength="100">
+                                <div class="form-text">请输入电影的类型，多个类型用逗号分隔</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 详细信息和图片列 -->
+                        <div class="col-md-6">
+                            <h5 class="mb-3 text-primary"><i class="fas fa-align-left me-2"></i>详细信息</h5>
+                            
+                            <!-- 电影简介 -->
+                            <div class="mb-3">
+                                <label for="description" class="form-label">
+                                    <i class="fas fa-align-left me-1"></i>简介
+                                    <span class="text-danger">*</span>
+                                </label>
+                                <textarea class="form-control" id="description" name="description" 
+                                          rows="6" placeholder="请输入电影简介..." required></textarea>
+                                <div class="form-text">请输入详细的电影剧情简介</div>
+                            </div>
+                            
+                            <!-- 电影海报上传 -->
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-image me-1"></i>电影海报
+                                </label>
+                                
+                                <!-- 标签页切换 -->
+                                <ul class="nav nav-tabs" id="posterTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="url-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#url" type="button" role="tab" 
+                                                aria-controls="url" aria-selected="true">
+                                            <i class="fas fa-link me-1"></i>URL链接
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#upload" type="button" role="tab" 
+                                                aria-controls="upload" aria-selected="false">
+                                            <i class="fas fa-upload me-1"></i>本地上传
+                                        </button>
+                                    </li>
+                                </ul>
+                                
+                                <!-- 标签页内容 -->
+                                <div class="tab-content mt-2" id="posterTabContent">
+                                    <!-- URL链接标签页 -->
+                                    <div class="tab-pane fade show active" id="url" role="tabpanel" aria-labelledby="url-tab">
+                                        <div class="mb-3">
+                                            <label for="image_url" class="form-label">海报URL（可选）</label>
+                                            <input type="url" class="form-control" id="image_url" name="image_url" 
+                                                   placeholder="https://example.com/movie-poster.jpg">
+                                            <div class="form-text">
+                                                请输入电影海报的网络URL地址。如果留空，系统会自动生成默认图片。
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 本地上传标签页 -->
+                                    <div class="tab-pane fade" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                                        <div class="mb-3">
+                                            <label for="image_file" class="form-label">上传本地图片</label>
+                                            <input type="file" class="form-control" id="image_file" name="image_file" 
+                                                   accept="image/*">
+                                            <div class="form-text">
+                                                支持 JPG、PNG、GIF、WebP 等常见图片格式，文件大小不超过 5MB。<br>
+                                                优先使用上传的文件，如果同时提供URL和文件，将使用上传的文件。
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 视频上传 -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-video me-1"></i>电影视频（可选）
+                            </label>
+                            
+                            <!-- 标签页切换 -->
+                            <ul class="nav nav-tabs" id="videoTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="video-url-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#video-url" type="button" role="tab" 
+                                            aria-controls="video-url" aria-selected="true">
+                                        <i class="fas fa-link me-1"></i>视频链接
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="video-upload-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#video-upload" type="button" role="tab" 
+                                            aria-controls="video-upload" aria-selected="false">
+                                        <i class="fas fa-upload me-1"></i>本地上传
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <!-- 标签页内容 -->
+                            <div class="tab-content mt-2" id="videoTabContent">
+                                <!-- 视频链接标签页 -->
+                                <div class="tab-pane fade show active" id="video-url" role="tabpanel" aria-labelledby="video-url-tab">
+                                    <div class="mb-3">
+                                        <label for="video_url" class="form-label">视频URL（可选）</label>
+                                        <input type="url" class="form-control" id="video_url" name="video_url" 
+                                               placeholder="https://example.com/movie-trailer.mp4">
+                                        <div class="form-text">
+                                            请输入电影视频的网络URL地址（支持MP4、WebM、OGG格式）。
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 本地上传标签页 -->
+                                <div class="tab-pane fade" id="video-upload" role="tabpanel" aria-labelledby="video-upload-tab">
+                                    <div class="mb-3">
+                                        <label for="video_file" class="form-label">上传本地视频</label>
+                                        <input type="file" class="form-control" id="video_file" name="video_file" 
+                                               accept="video/*">
+                                        <div class="form-text">
+                                            支持 MP4、WebM、OGG、MOV、AVI 等常见视频格式，文件大小不超过 100MB。<br>
+                                            优先使用上传的文件，如果同时提供URL和文件，将使用上传的文件。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 电影分类 -->
+                    <div class="mb-4">
+                        <h5 class="mb-3 text-primary"><i class="fas fa-list me-2"></i>电影分类</h5>
+                        <label class="form-label">选择分类（可多选）</label>
+                        <div class="row">
+                            {% for category in categories %}
+                            <div class="col-md-3 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="{{ category.id }}" 
+                                           id="category_{{ category.id }}" name="categories">
+                                    <label class="form-check-label" for="category_{{ category.id }}">
+                                        {{ category.name }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text">请选择适合的电影分类，可以多选</div>
+                    </div>
+                    
+                    <!-- 表单操作按钮 -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-1"></i>返回管理面板
+                        </a>
+                        <button type="reset" class="btn btn-warning me-md-2">
+                            <i class="fas fa-redo me-1"></i>重置表单
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>添加电影
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 添加电影说明 -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>添加电影说明</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>必填字段说明：</h6>
+                        <ul class="small">
+                            <li><strong>电影标题：</strong>完整的电影名称，确保准确无误</li>
+                            <li><strong>导演：</strong>导演的完整姓名</li>
+                            <li><strong>上映年份：</strong>电影首次上映的年份</li>
+                            <li><strong>类型：</strong>电影的主要类型</li>
+                            <li><strong>简介：</strong>详细的剧情介绍</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>可选字段说明：</h6>
+                        <ul class="small">
+                            <li><strong>海报URL：</strong>高质量的电影海报图片链接</li>
+                            <li><strong>本地上传：</strong>从电脑上传海报图片（推荐）</li>
+                            <li><strong>视频链接：</strong>电影预告片或完整视频的网络链接</li>
+                            <li><strong>视频上传：</strong>从电脑上传视频文件（推荐）</li>
+                            <li><strong>分类：</strong>选择合适的电影分类</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-warning mt-3 small">
+                    <strong>提示：</strong> 添加电影后，用户即可在网站上浏览、评分和评论该电影。
+                    建议提供高质量的海报图片以提升用户体验。
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// 设置年份输入框的默认值和限制
+document.addEventListener('DOMContentLoaded', function() {
+    // 设置当前年份为默认值
+    const yearInput = document.getElementById('year');
+    const currentYear = new Date().getFullYear();
+    yearInput.value = currentYear;
+    
+    // 设置年份范围（1900-当前年份+5）
+    yearInput.min = 1900;
+    yearInput.max = currentYear + 5;
+    
+    // 表单验证增强
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        let isValid = true;
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            event.preventDefault();
+            alert('请填写所有必填字段！');
+        }
+    });
+    
+    // 实时验证
+    const inputs = form.querySelectorAll('input, textarea');
+    inputs.forEach(input => {
+        input.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

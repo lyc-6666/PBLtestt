@@ -1,0 +1,225 @@
+<!-- 电影详情页面模板 -->
+{% extends "base.html" %}
+
+{% block title %}{{ movie.title }} - 电影推荐系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- 电影基本信息 -->
+    <div class="col-md-4 mb-4">
+        {% if movie.video_url %}
+        <!-- 视频播放器 -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-play-circle me-2"></i>在线观看</h5>
+            </div>
+            <div class="card-body p-0">
+                <video id="moviePlayer" class="w-100" controls poster="{{ movie.image_url }}" 
+                       onerror="this.poster='https://picsum.photos/400/225?random={{ movie.id }}'">
+                    <source src="{{ movie.video_url }}" type="video/mp4">
+                    您的浏览器不支持视频播放。
+                </video>
+            </div>
+            <div class="card-footer text-center">
+                <small class="text-muted">点击播放按钮开始观看</small>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- 电影海报和评分 -->
+        <div class="card">
+            <img src="{{ movie.image_url }}" 
+                 class="card-img-top" 
+                 alt="{{ movie.title }}"
+                 onerror="this.src='https://picsum.photos/400/600?random={{ movie.id }}'">
+            
+            <div class="card-body">
+                {% if movie.rating %}
+                <div class="text-center mb-3">
+                    <div class="rating-stars display-6">
+                        {% for i in range(5) %}
+                            {% if i < movie.rating|int %}
+                                <i class="fas fa-star"></i>
+                            {% else %}
+                                <i class="far fa-star"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <h4 class="text-warning">{{ "%.1f"|format(movie.rating) }}/5.0</h4>
+                    <small class="text-muted">平均评分</small>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2">
+                    {% if user %}
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ratingModal">
+                            <i class="fas fa-star me-1"></i>
+                            {% if user_rating %}修改评分{% else %}我要评分{% endif %}
+                        </button>
+                    {% else %}
+                        <a href="{{ url_for('login') }}" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>登录后评分
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 电影详细信息 -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">{{ movie.title }}</h3>
+            </div>
+            <div class="card-body">
+                <!-- 基本信息表格 -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="30%"><i class="fas fa-user me-1"></i>导演：</th>
+                                <td>{{ movie.director or '未知' }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-calendar me-1"></i>上映年份：</th>
+                                <td>{{ movie.year or '未知' }}</td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-tag me-1"></i>类型：</th>
+                                <td>{{ movie.genre or '未知' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th width="40%"><i class="fas fa-star me-1"></i>评分：</th>
+                                <td>
+                                    {% if movie.rating %}
+                                        {{ "%.1f"|format(movie.rating) }} 分
+                                    {% else %}
+                                        <span class="text-muted">暂无评分</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th><i class="fas fa-clock me-1"></i>添加时间：</th>
+                                <td>{{ movie.created_at[:10] if movie.created_at else '未知' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- 电影简介 -->
+                <div class="mb-4">
+                    <h5><i class="fas fa-info-circle me-2"></i>电影简介</h5>
+                    <p class="lead">{{ movie.description or '暂无简介' }}</p>
+                </div>
+                
+                <!-- 管理员操作 -->
+                {% if user and user.role == 'admin' %}
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-cog me-2"></i>管理员操作</h6>
+                    <div class="btn-group">
+                        <a href="#" class="btn btn-sm btn-outline-primary">编辑信息</a>
+                        <a href="{{ url_for('admin_delete_movie', movie_id=movie.id) }}" 
+                           class="btn btn-sm btn-outline-danger" 
+                           onclick="return confirm('确定要删除这部电影吗？')">
+                            删除电影
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- 评分和评论区域 -->
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-comments me-2"></i>用户评价</h5>
+            </div>
+            <div class="card-body">
+                {% if ratings %}
+                    {% for rating in ratings %}
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>{{ rating.username }}</strong>
+                                <small class="text-muted ms-2">{{ rating.created_at[:16] }}</small>
+                            </div>
+                            <div class="rating-stars">
+                                {% for i in range(5) %}
+                                    {% if i < rating.rating %}
+                                        <i class="fas fa-star"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% if rating.review %}
+                        <p class="mb-0">{{ rating.review }}</p>
+                        {% else %}
+                        <p class="text-muted mb-0">该用户没有留下评论</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comment-slash fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">暂无评价，快来发表第一条评论吧！</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 评分模态框 -->
+{% if user %}
+<div class="modal fade" id="ratingModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">为《{{ movie.title }}》评分</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('rate_movie', movie_id=movie.id) }}" method="post">
+                <div class="modal-body">
+                    <!-- 星级评分 -->
+                    <div class="mb-3">
+                        <label class="form-label">评分（1-5星）</label>
+                        <div class="rating-input">
+                            {% for i in range(5, 0, -1) %}
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="rating" 
+                                       id="rating{{ i }}" value="{{ i }}" 
+                                       {% if user_rating and user_rating.rating == i %}checked{% endif %}>
+                                <label class="form-check-label" for="rating{{ i }}">
+                                    {% for j in range(i) %}<i class="fas fa-star text-warning"></i>{% endfor %}
+                                    ({{ i }}星)
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <!-- 评论输入 -->
+                    <div class="mb-3">
+                        <label for="review" class="form-label">评论（可选）</label>
+                        <textarea class="form-control" id="review" name="review" rows="3" 
+                                  placeholder="分享您的观影感受...">{% if user_rating %}{{ user_rating.review }}{% endif %}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">提交评价</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
