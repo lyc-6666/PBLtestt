@@ -1011,6 +1011,151 @@ def uploaded_file(filename):
     """提供上传文件的静态访问"""
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# 个人中心路由
+@app.route('/profile')
+def profile():
+    """个人中心页面"""
+    if not check_login():
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    
+    # 获取用户信息
+    user_info = execute_db_query(
+        "SELECT * FROM users WHERE id = ?", 
+        (user_id,), 
+        fetch_one=True
+    )
+    
+    # 获取用户的评分记录（包含电影信息）
+    ratings = execute_db_query(
+        '''SELECT r.*, m.title, m.year, m.director, m.image_url 
+           FROM ratings r 
+           JOIN movies m ON r.movie_id = m.id 
+           WHERE r.user_id = ? 
+           ORDER BY r.created_at DESC''',
+        (user_id,),
+        fetch_all=True
+    )
+    
+    # 获取用户的评论记录（只显示有评论内容的）
+    reviews = execute_db_query(
+        '''SELECT r.*, m.title 
+           FROM ratings r 
+           JOIN movies m ON r.movie_id = m.id 
+           WHERE r.user_id = ? AND r.review IS NOT NULL AND r.review != ''
+           ORDER BY r.created_at DESC''',
+        (user_id,),
+        fetch_all=True
+    )
+    
+    # 计算统计数据
+    avg_rating = 0
+    highest_rated_movie = None
+    
+    if ratings:
+        avg_rating = sum(r['rating'] for r in ratings) / len(ratings)
+        highest_rated = max(ratings, key=lambda x: x['rating'])
+        highest_rated_movie = {
+            'title': highest_rated['title'],
+            'rating': highest_rated['rating']
+        }
+    
+    return render_template('profile.html', 
+                         user_info=user_info,
+                         ratings=ratings or [],
+                         reviews=reviews or [],
+                         avg_rating=avg_rating,
+                         highest_rated_movie=highest_rated_movie or {},
+                         user=session)
+
+# 更新个人信息路由
+@app.route('/update_profile', methods=['POST'])
+def update_profile():
+    """更新个人信息"""
+    if not check_login():
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    email = request.form.get('email', '').strip()
+    new_password = request.form.get('new_password', '').strip()
+    confirm_password = request.form.get('confirm_password', '').strip()
+    
+    try:
+        # 更新邮箱
+        if email:
+            execute_db_query(
+                "UPDATE users SET email = ? WHERE id = ?",
+                (email, user_id),
+                commit=True
+            )
+        
+        # 更新密码（如果提供）
+        if new_password:
+            if new_password != confirm_password:
+                return redirect(url_for('profile'))
+            
+            if len(new_password) < 6:
+                return redirect(url_for('profile'))
+            
+            # 加密新密码
+            hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+            execute_db_query(
+                "UPDATE users SET password = ? WHERE id = ?",
+                (hashed_password, user_id),
+                commit=True
+            )
+        
+        return render_template('profile.html', 
+                             profile_updated=True,
+                             user_info=execute_db_query("SELECT * FROM users WHERE id = ?", (user_id,), fetch_one=True),
+                             ratings=[],
+                             reviews=[],
+                             avg_rating=0,
+                             highest_rated_movie={},
+                             user=session)
+    
+    except Exception as e:
+        print(f"更新个人信息失败: {e}")
+        return redirect(url_for('profile'))
+
+# 删除评分路由
+@app.route('/delete_rating/<int:rating_id>')
+def delete_rating(rating_id):
+    """删除用户的评分记录"""
+    if not check_login():
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    
+    # 验证该评分是否属于当前用户
+    rating = execute_db_query(
+        "SELECT * FROM ratings WHERE id = ? AND user_id = ?",
+        (rating_id, user_id),
+        fetch_one=True
+    )
+    
+    if not rating:
+        return redirect(url_for('profile'))
+    
+    movie_id = rating['movie_id']
+    
+    try:
+        # 删除评分
+        execute_db_query("DELETE FROM ratings WHERE id = ?", (rating_id,), commit=True)
+        
+        # 重新计算该电影的平均评分
+        execute_db_query(
+            "UPDATE movies SET rating = COALESCE((SELECT AVG(rating) FROM ratings WHERE movie_id = ?), 0.0) WHERE id = ?",
+            (movie_id, movie_id),
+            commit=True
+        )
+        
+        return redirect(url_for('profile'))
+    except Exception as e:
+        print(f"删除评分失败: {e}")
+        return redirect(url_for('profile'))
+
 # 处理文件上传大小超限的错误
 @app.errorhandler(413)
 def too_large(e):
