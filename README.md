@@ -223,7 +223,7 @@ app.secret_key = 'your-secret-key-here'
    - 图片懒加载
    - 静态资源CDN
    - 浏览器缓存优化
-
+  
 3. **服务器优化**
    - 使用Gunicorn部署
    - 配置Nginx反向代理
